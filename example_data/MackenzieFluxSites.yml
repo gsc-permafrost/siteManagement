@@ -7,68 +7,73 @@ SCL:
   startDate: 2024-07-20
   stopDate: null
   landCoverType: Sedge Wetland
-  latitude: 'N69 13.5850'
-  longitude: 'W135 15.1144'
-  Measurements:
+  coordinates:
     Flux:
-      measurementID: Flux
-      fileType: TOB3
-      sampleFrequency: 50ms
-      description: High frequency (20 Hz) Eddy Covariance data
-      latitude: '69 13.5850'
+      latitude: 'N69 13.5850'
       longitude: 'W135 15.1144'
-      startDate: 2024-07-20
-      stopDate: null
-    Met:
-      measurementID: Met
-      fileType: TOB3
-      sampleFrequency: 30min
-      description: Half-hourly biometeorologic data
-      latitude: '69 13.5850'
+    Clux:
+      latitude: 'N69 13.5850'
       longitude: 'W135 15.1144'
-      startDate: 2024-07-20
-      stopDate: null
-    Metadata:
-      measurementID: Metadata
-      fileType: TOB3
-      sampleFrequency: 24h
-      description: Daily metadata
-      latitude: '69 13.5850'
-      longitude: 'W135 15.1144'
-      startDate: 2024-07-20
-      stopDate: null
-    SSM_Profile:
-      measurementID: SSM_Profile
-      fileType: HOBOcsv
-      sampleFrequency: 30min
-      description: HOBO logger in salix sedge meadow
-      latitude: 'N 69 13.5239'
-      longitude: 'W135 15.1358'
-      startDate: 2024-07-20
-      stopDate: null
-    WSM_Profile:
-      measurementID: WSM_Profile
-      fileType: HOBOcsv
-      sampleFrequency: 30min
-      description: HOBO logger in wet sedge meadow
-      latitude: 'N 69 13.5521'
-      longitude: 'W135 15.1350'
-      startDate: 2024-07-20
-      stopDate: null
-FIL:
-  siteID: FIL
-  Name: Fish Island
-  PI: June Skeeter
-  description: Eddy covariance station low center polygon permafrost peatland site in the Mackenzie River Delta
-  stopDate: '2017-09-13'
-  landCoverType: Peatland
-  latitude: N69 22 20.20
-  longitude: W134 52 51.92
-  startDate: 2017-06-21
-  Measurements:
-    RIM:
-      measurementID: RIM
-      description: Polygon rim
-    CNT:
-      measurementID: CNT
-      description: Polygon centre
+  # Measurements:
+#     Flux:
+#       measurementID: Flux
+#       fileType: TOB3
+#       sampleFrequency: 50ms
+#       description: High frequency (20 Hz) Eddy Covariance data
+#       latitude: '69 13.5850'
+#       longitude: 'W135 15.1144'
+#       startDate: 2024-07-20
+#       stopDate: null
+#     Met:
+#       measurementID: Met
+#       fileType: TOB3
+#       sampleFrequency: 30min
+#       description: Half-hourly biometeorologic data
+#       latitude: '69 13.5850'
+#       longitude: 'W135 15.1144'
+#       startDate: 2024-07-20
+#       stopDate: null
+#     Metadata:
+#       measurementID: Metadata
+#       fileType: TOB3
+#       sampleFrequency: 24h
+#       description: Daily metadata
+#       latitude: '69 13.5850'
+#       longitude: 'W135 15.1144'
+#       startDate: 2024-07-20
+#       stopDate: null
+#     SSM_Profile:
+#       measurementID: SSM_Profile
+#       fileType: HOBOcsv
+#       sampleFrequency: 30min
+#       description: HOBO logger in salix sedge meadow
+#       latitude: 'N 69 13.5239'
+#       longitude: 'W135 15.1358'
+#       startDate: 2024-07-20
+#       stopDate: null
+#     WSM_Profile:
+#       measurementID: WSM_Profile
+#       fileType: HOBOcsv
+#       sampleFrequency: 30min
+#       description: HOBO logger in wet sedge meadow
+#       latitude: 'N 69 13.5521'
+#       longitude: 'W135 15.1350'
+#       startDate: 2024-07-20
+#       stopDate: null
+# FIL:
+#   siteID: FIL
+#   Name: Fish Island
+#   PI: June Skeeter
+#   description: Eddy covariance station low center polygon permafrost peatland site in the Mackenzie River Delta
+#   stopDate: '2017-09-13'
+#   landCoverType: Peatland
+#   latitude: N69 22 20.20
+#   longitude: W134 52 51.92
+#   startDate: 2017-06-21
+#   Measurements:
+#     RIM:
+#       measurementID: RIM
+#       description: Polygon rim
+#     CNT:
+#       measurementID: CNT
+#       description: Polygon centre

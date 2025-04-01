@@ -51,7 +51,7 @@ class measurementRecord:
             if self.measurementID != '.measurementID':
                 self.measurementID = safeFmt(self.measurementID)
             coordinates = siteCoordinates(self.latitude,self.longitude)
-            self.latitude,self.longitude = coordinates.GCS['y'],coordinates.GCS['x']
+            # self.latitude,self.longitude = coordinates.GCS['y'],coordinates.GCS['x']
             if type(list(self.sourceFiles.values())[0]) is not dict:
                 self.sourceFiles = {'':self.sourceFiles}
             if self.dpath:
@@ -75,6 +75,7 @@ class siteRecord:
     landCoverType: str = None
     latitude: float = None
     longitude: float = None
+    # coordinates: dict = field(default_factory=lambda:{})
     Measurements: measurementRecord = field(default_factory=lambda:{k:v for k,v in measurementRecord.__dict__.items() if k[0:2] != '__'})
     dpath: str = field(default=None,repr=False)
     
@@ -82,8 +83,19 @@ class siteRecord:
         if self.siteID:
             if self.siteID != '.siteID':
                 self.siteID = safeFmt(self.siteID)
-            coordinates = siteCoordinates(self.latitude,self.longitude)
-            self.latitude,self.longitude = coordinates.GCS['y'],coordinates.GCS['x']
+            # if 'latitude' in self.coordinates and 'longitude' in self.coordinates:
+            #     self.coordinates = siteCoordinates(self.coordinates['latitude'],self.coordinates['longitude'])
+            # print(siteCoordinates(**self.coordinates))
+            coordinates = map(lambda ID:siteCoordinates(ID = ID,**self.coordinates[ID]), self.coordinates)
+            # for ID in self.coordinates:
+            #     print(siteCoordinates(**self.coordinates[ID]))
+            # print('/')
+            # print(coordinates)
+
+            for r in coordinates:
+                print(r)
+            self.coordinates = {r.ID:reprToDict(r) for r in coordinates}
+            print(self.coordinates)
             if type(list(self.Measurements.values())[0]) is not dict:
                 self.Measurements = {'':self.Measurements}
             if self.dpath:
@@ -103,5 +115,15 @@ class siteInventory:
             with open(self.Sites) as f:
                 self.Sites = yaml.safe_load(f)
         robj = map(lambda key: siteRecord(**self.Sites[key]),self.Sites)
-        self.siteInventory = {r.siteID:reprToDict(r) for r in robj}
+        self.Sites = {r.siteID:reprToDict(r) for r in robj}
         
+
+    def makeMap(sef):
+        pass
+        #     if not siteID.startswith('.'):
+        #         siteDF = pd.concat([siteDF,pd.DataFrame(data = self.projectInfo['Sites'][siteID], index=[siteID])])
+        # if not siteDF.empty:
+        #     Site_WGS = gpd.GeoDataFrame(siteDF, geometry=gpd.points_from_xy(siteDF.longitude, siteDF.latitude), crs="EPSG:4326")
+        #     self.mapTemplate = self.mapTemplate.replace('fieldSitesJson',Site_WGS.to_json())
+        #     with open(os.path.join(self.projectPath,'fieldSiteMap.html'),'w+') as out:
+        #         out.write(self.mapTemplate)
