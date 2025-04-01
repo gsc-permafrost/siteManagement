@@ -10,15 +10,7 @@ from pyproj import CRS
 from typing import Literal
 import geopandas as gpd
 from dataclasses import dataclass,field
-# from pydantic.dataclasses import dataclass as pydantic_dataclass
-# from pydantic import ConfigDict
-# import helperFunctions as helper
-
-
-def reprToDict(dc):
-    # given a dataclass, dummp itemes where repr=true to a dictionary
-    return({k:v for k,v in dc.__dict__.items() if k in dc.__dataclass_fields__ and dc.__dataclass_fields__[k].repr})
-
+from .helperFunctions.reprToDict import reprToDict
 
 @dataclass
 class utmCoordinates:
@@ -33,7 +25,6 @@ class utmCoordinates:
 
     def __post_init__(self):
         if self.latitude and self.longitude:
-            print(self.latitude,self.longitude)
             UTM_coords = utm.from_latlon(self.latitude,self.longitude)
             crs = CRS.from_dict({'proj': 'utm', 'zone': UTM_coords[2], 'south': UTM_coords[3]<'N', 'datum': self.datum})
             self.EPSG=crs.to_epsg()
@@ -81,60 +72,32 @@ class geographicCoordinates:
         DMS = hemisphere+str(int(abs(DD)))+self.degreeString+' '+str(int((DD%1)*60))+"' "+str(round((DD%1*60)%1*60,self.DMS_sig))+'"'
         return(DD,DDM,DMS)
 
-@dataclass
+@dataclass(kw_only=True)
 class coordinates:
     ID:list = None
     latitude: list = None
     longitude: list = None
-    kwargs: dict = field(default_factory=lambda:{},repr=False)
+    attributes: dict = field(default_factory=lambda:{},repr=False)
     datum: str = field(default='WGS84',repr=False)
-    # geojson_template: dict = None
-    # GCS: geographicCoordinates = field(default_factory=lambda:{k:v for k,v in geographicCoordinates.__dict__.items() if k[0:2] != '__'})
-    # UTM: utmCoordinates = field(default_factory=lambda:{k:v for k,v in utmCoordinates.__dict__.items() if k[0:2] != '__'})
     
     def __post_init__(self):
         self.geographicCoordinates = reprToDict(
             geographicCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum)
         )
         self.latitude,self.longitude=self.geographicCoordinates['latitude'],self.geographicCoordinates['longitude']
-        self.UTM = reprToDict(
-            utmCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum)
-        )
+        self.UTM = reprToDict(utmCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum))
+        
         self.geodataframe = gpd.GeoDataFrame(index=[self.ID],
-                                             data=self.kwargs,
+                                             data=self.attributes,
                                              geometry=gpd.points_from_xy([self.UTM['x']],[self.UTM['y']]),
                                              crs=self.UTM['EPSG'])
-        
     
         self.geojson = {
             "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "siteID": self.ID
-                    }|self.kwargs,
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [self.longitude, self.latitude] 
-                    }
-                }
-            ]
-        }
-
-
-# @dataclass
-# class coordinates:
-#     latitude: str = field(default=None,repr=False)
-#     longitude: str = field(default=None,repr=False)
-#     datum: Literal['WGS84','NAD83'] = 'WGS84'
-#     formatted: dict = field(default_factory=lambda:{'DMS':None,'DDM':None})
-#     # geographicCoordinates: dict = field(default_factory=lambda:{'EPSG':None,'latitude':None,'longitude':None})
-
-        # self.latitude,latDDM,latDMS = self.getDD(str(self.latitude),'NS')
-        # self.longitude,lonDDM,lonDMS = self.getDD(str(self.longitude),'EW')
-        # self.formatted['DDM'] = [latDDM,lonDDM]
-        # self.formatted['DMS'] = [latDMS,lonDMS]
-        # self.getUTM()
-        # self.geographicCoordinates = geographicCoordinates(datum=self.datum,x=self.longitude,y=self.latitude).__dict__
+            "features": [{
+                "type": "Feature",
+                "properties": {"ID": self.ID}|self.attributes,
+                "geometry": {"type": "Point","coordinates": [self.longitude, self.latitude]}
+                },
+                ]}
 

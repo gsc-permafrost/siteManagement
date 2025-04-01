@@ -4,17 +4,18 @@
 from dataclasses import dataclass,field
 # import helperFunctions as helper
 from .siteCoordinates import coordinates as siteCoordinates
+from .helperFunctions.updateDict import updateDict
+from .helperFunctions.reprToDict import reprToDict
+from .helperFunctions.safeFormat import safeFormat
+from .helperFunctions.log import log
+from pathlib import Path
+import geopandas as gpd
+import pandas as pd
+import json
 import yaml
 import os
 import re
 
-
-def safeFmt(string,safeChars='[^0-9a-zA-Z]+',fillChar='_'):
-    return(re.sub(safeChars,fillChar, str(string)))
-
-def reprToDict(dc):
-    # given a dataclass, dummp itemes where repr=true to a dictionary
-    return({k:v for k,v in dc.__dict__.items() if k in dc.__dataclass_fields__ and dc.__dataclass_fields__[k].repr})
 
 
 @dataclass(kw_only=True)
@@ -49,17 +50,14 @@ class measurementRecord:
     def __post_init__(self):
         if self.measurementID:
             if self.measurementID != '.measurementID':
-                self.measurementID = safeFmt(self.measurementID)
-            coordinates = siteCoordinates(self.latitude,self.longitude)
-            # self.latitude,self.longitude = coordinates.GCS['y'],coordinates.GCS['x']
+                self.measurementID = safeFormat(self.measurementID)
+            self.coordinates = siteCoordinates(ID=self.measurementID,latitude=self.latitude,longitude=self.longitude,attributes={'description':self.description,'pointClass':type(self).__name__})
+            self.latitude,self.longitude=self.coordinates.latitude,self.coordinates.longitude
             if type(list(self.sourceFiles.values())[0]) is not dict:
                 self.sourceFiles = {'':self.sourceFiles}
-            if self.dpath:
-                pth = os.path.join(self.dpath,self.measurementID)
-            else:
-                pth = None
             sobj = map(lambda values :sourceRecord(**values),self.sourceFiles.values())
             self.sourceFiles = {s.sourceID:reprToDict(s) for s in sobj}
+
             if len(self.sourceFiles)>1 and self.__dataclass_fields__['sourceFiles'].default_factory()['sourceID'] in self.sourceFiles:
                 self.sourceFiles.pop(self.__dataclass_fields__['sourceFiles'].default_factory()['sourceID'])                
 
@@ -75,55 +73,61 @@ class siteRecord:
     landCoverType: str = None
     latitude: float = None
     longitude: float = None
-    # coordinates: dict = field(default_factory=lambda:{})
+    coordinates: dict = field(default_factory=lambda:{},repr=False)
+    geojson: dict = field(default_factory=lambda:{},repr=False)
+    geodataframe: gpd.GeoDataFrame = field(default_factory=lambda:gpd.GeoDataFrame(),repr=False)
     Measurements: measurementRecord = field(default_factory=lambda:{k:v for k,v in measurementRecord.__dict__.items() if k[0:2] != '__'})
     dpath: str = field(default=None,repr=False)
     
     def __post_init__(self):
         if self.siteID:
             if self.siteID != '.siteID':
-                self.siteID = safeFmt(self.siteID)
-            # if 'latitude' in self.coordinates and 'longitude' in self.coordinates:
-            #     self.coordinates = siteCoordinates(self.coordinates['latitude'],self.coordinates['longitude'])
-            # print(siteCoordinates(**self.coordinates))
-            coordinates = map(lambda ID:siteCoordinates(ID = ID,**self.coordinates[ID]), self.coordinates)
-            # for ID in self.coordinates:
-            #     print(siteCoordinates(**self.coordinates[ID]))
-            # print('/')
-            # print(coordinates)
-
-            for r in coordinates:
-                print(r)
-            self.coordinates = {r.ID:reprToDict(r) for r in coordinates}
-            print(self.coordinates)
+                self.siteID = safeFormat(self.siteID)
+            if self.latitude and self.longitude:
+                self.coordinates = siteCoordinates(ID=self.siteID,latitude=self.latitude,longitude=self.longitude,attributes={'description':self.description,'pointClass':type(self).__name__})
+                self.latitude,self.longitude=self.coordinates.latitude,self.coordinates.longitude
+                self.geojson = self.coordinates.geojson
+                self.geodataframe = self.coordinates.geodataframe
             if type(list(self.Measurements.values())[0]) is not dict:
                 self.Measurements = {'':self.Measurements}
-            if self.dpath:
-                pth = os.path.join(self.dpath,self.siteID)
-            else:
-                pth = None
-            mobj = map(lambda key :measurementRecord(**self.Measurements[key]),self.Measurements)
-            self.Measurements = {m.measurementID:reprToDict(m) for m in mobj}
-            # self.Measurements = helper.dictToDataclass(measurementRecord,self.Measurements,ID=['measurementID'],constants={'dpath':pth})
+
+            # map the measurements and unpack to dict
+            Measurements = map(lambda key :measurementRecord(**self.Measurements[key]),self.Measurements)
+            self.Measurements = {measurement.measurementID:measurement for measurement in Measurements}
+            for measurementID in self.Measurements:
+                if self.Measurements[measurementID].coordinates == {} or measurementID == '.measurementID':
+                    pass
+                elif self.geojson == {}:
+                    self.geojson = self.Measurements[measurementID].coordinates.geojson
+                    self.geodataframe = self.Measurements[measurementID].coordinates.geodataframe
+                else:
+                    self.geojson = updateDict(self.geojson,self.Measurements[measurementID].coordinates.geojson,overwrite='append')
+                    self.geodataframe = pd.concat([self.geodataframe,self.Measurements[measurementID].coordinates.geodataframe])
+            self.Measurements = {measurementID:reprToDict(self.Measurements[measurementID]) for measurementID in self.Measurements}
 
 @dataclass(kw_only=True)
 class siteInventory:
     Sites: dict = None
+    verbose: bool = False
+    spatialInventory: dict = field(default_factory=lambda:{})
+    mapTemplate: str = field(default_factory=lambda:Path(os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates','MapTemplate.html')).read_text())
+
 
     def __post_init__(self):
         if type(self.Sites) is str and os.path.isfile(self.Sites):
             with open(self.Sites) as f:
                 self.Sites = yaml.safe_load(f)
-        robj = map(lambda key: siteRecord(**self.Sites[key]),self.Sites)
-        self.Sites = {r.siteID:reprToDict(r) for r in robj}
-        
+        Sites = map(lambda key: siteRecord(**self.Sites[key]),self.Sites)
+        self.Sites = {site.siteID:site for site in Sites}
+        for siteID in self.Sites:
+            if self.Sites[siteID].coordinates == {}:
+                pass
+            elif self.spatialInventory == {}:
+                self.spatialInventory['geojson'] = self.Sites[siteID].geojson
+                self.spatialInventory['geodataframes'] = {siteID:self.Sites[siteID].geojson}
+            else:
+                self.spatialInventory['geojson'] = updateDict(self.spatialInventory['geojson'],self.Sites[siteID].geojson,overwrite='append',verbose=self.verbose)
+                self.spatialInventory['geodataframes'][siteID] = self.Sites[siteID].geojson
 
-    def makeMap(sef):
-        pass
-        #     if not siteID.startswith('.'):
-        #         siteDF = pd.concat([siteDF,pd.DataFrame(data = self.projectInfo['Sites'][siteID], index=[siteID])])
-        # if not siteDF.empty:
-        #     Site_WGS = gpd.GeoDataFrame(siteDF, geometry=gpd.points_from_xy(siteDF.longitude, siteDF.latitude), crs="EPSG:4326")
-        #     self.mapTemplate = self.mapTemplate.replace('fieldSitesJson',Site_WGS.to_json())
-        #     with open(os.path.join(self.projectPath,'fieldSiteMap.html'),'w+') as out:
-        #         out.write(self.mapTemplate)
+        self.siteInventory = {siteID:reprToDict(self.Sites[siteID]) for siteID in self.Sites}
+        self.mapTemplate = self.mapTemplate.replace('fieldSitesJson',json.dumps(self.spatialInventory))
