@@ -1,3 +1,3 @@
 # Site Inventory
 
-A template for default site Metadata with an extension to make a web plotting sites.
+A toolset for managing site-specific metadata with an extension to make a web plotting sites.
