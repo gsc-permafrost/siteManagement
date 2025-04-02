@@ -10,7 +10,6 @@ from pyproj import CRS
 from typing import Literal
 import geopandas as gpd
 from dataclasses import dataclass,field
-from .helperFunctions.reprToDict import reprToDict
 
 @dataclass
 class utmCoordinates:
@@ -74,23 +73,25 @@ class geographicCoordinates:
 
 @dataclass(kw_only=True)
 class coordinates:
-    ID:list = None
+    ID:list = 'ID'
     latitude: list = None
     longitude: list = None
     attributes: dict = field(default_factory=lambda:{},repr=False)
     datum: str = field(default='WGS84',repr=False)
+    geojson: dict = field(default_factory=lambda:{},repr=False)
+    geodataframe: gpd.GeoDataFrame = field(default_factory=lambda:gpd.GeoDataFrame(),repr=False)
     
     def __post_init__(self):
-        self.geographicCoordinates = reprToDict(
-            geographicCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum)
-        )
-        self.latitude,self.longitude=self.geographicCoordinates['latitude'],self.geographicCoordinates['longitude']
-        self.UTM = reprToDict(utmCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum))
+        if not self.latitude or not self.longitude:
+            return
+        self.geographicCoordinates = geographicCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum)
+        self.latitude,self.longitude=self.geographicCoordinates.latitude,self.geographicCoordinates.longitude
+        self.UTM = utmCoordinates(latitude=self.latitude,longitude=self.longitude,datum=self.datum)
         
         self.geodataframe = gpd.GeoDataFrame(index=[self.ID],
                                              data=self.attributes,
-                                             geometry=gpd.points_from_xy([self.UTM['x']],[self.UTM['y']]),
-                                             crs=self.UTM['EPSG'])
+                                             geometry=gpd.points_from_xy([self.UTM.x],[self.UTM.y]),
+                                             crs=self.UTM.EPSG)
     
         self.geojson = {
             "type": "FeatureCollection",
