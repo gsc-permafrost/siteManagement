@@ -17,7 +17,6 @@ import os
 import re
 
 
-
 @dataclass(kw_only=True)
 class sourceRecord:
     # executes a file search using wildcard pattern matching cross references against a list of exiting files
@@ -130,4 +129,7 @@ class siteInventory:
                 self.spatialInventory['geodataframes'][siteID] = self.Sites[siteID].geojson
 
         self.siteInventory = {siteID:reprToDict(self.Sites[siteID]) for siteID in self.Sites}
-        self.mapTemplate = self.mapTemplate.replace('fieldSitesJson',json.dumps(self.spatialInventory))
+        if 'geojson' in self.spatialInventory:
+            self.mapTemplate = self.mapTemplate.replace('fieldSitesJson',json.dumps(self.spatialInventory['geojson']))
+
+        self.Sites = {siteID:reprToDict(self.Sites[siteID]) for siteID in self.Sites}
